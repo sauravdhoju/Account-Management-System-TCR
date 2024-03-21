@@ -86,18 +86,32 @@ def main():
         # Streamlit interface
         st.title("Monthly Transactions")
 
+        # Initialize debit variable
+        debit = 0
+        balance = 0
         # Form for adding a new transaction
         st.subheader("Add New Transaction")
         date = st.date_input("Date")
         description = st.text_input("Description")
-        debit = st.number_input("Debit", min_value=0.0, step=0.01)
-        credit = st.number_input("Credit", min_value=0.0, step=0.01)
+        type = st.selectbox("Transaction Type", options = ["Debit", "Credit"])
+        if type == 'Debit':
+            debit = st.number_input("Debit", min_value=0.0, step=0.01)
+        elif type == 'Credit':
+            credit = st.number_input("Credit", min_value=0.0, step=0.01)
+            
         if st.button("Add Transaction"):
-            if insert_monthly_transaction(conn, date, description, debit, credit, balance):
-                st.success("Transaction added successfully!")
-                update_balance(conn)
-            else:
-                st.error("Failed to add transaction.")
+            if type == 'Debit':
+                if insert_monthly_transaction(conn, date, description, debit, 0, balance):
+                    st.success("Transaction added successfully!")
+                    update_balance(conn)
+                else:
+                    st.error("Failed to add transaction.")
+            elif type == 'Credit':
+                if insert_monthly_transaction(conn, date, description, 0, credit, balance):
+                    st.success("Transaction added successfully!")
+                    update_balance(conn)
+                else:
+                    st.error("Failed to add transaction.")
 
         # Displaying existing transactions
         st.subheader("Existing Transactions")
@@ -107,6 +121,7 @@ def main():
             st.dataframe(df)
         else:
             st.info("No transactions found.")
+
 
 if __name__ == "__main__":
     main()
