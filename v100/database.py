@@ -25,6 +25,9 @@ def create_tables(conn):
                                 position TEXT NOT NULL,
                                 account_balance REAL DEFAULT 0 CHECK (account_balance >= 0)
                             )''')
+            
+            insert_default_user(conn)
+            
             cursor.execute('''CREATE TABLE IF NOT EXISTS Transactions (
                                 transaction_id INTEGER PRIMARY KEY,
                                 member_id INTEGER NOT NULL,
@@ -57,11 +60,36 @@ def create_tables(conn):
             conn.commit()
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
+            
+#DEFAULT USER
+# Function to insert the default user if it doesn't exist
+def insert_default_user(conn):
+    default_pass_hash = pbkdf2_sha256.hash('admin')
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''SELECT COUNT(*) FROM Members WHERE username = 'admin' AND email = 'admin@example.com' ''')
+        count = cursor.fetchone()[0]
+        if count == 0:
+            cursor.execute('''INSERT INTO Members (username, hashed_password, full_name, email, phone, position, account_balance)
+                              VALUES ('admin', ?, 'Admin User', 'admin@example.com', 1234567890, 'Administrator', 0)''', (default_pass_hash,))
+            conn.commit()
+            print("Default user inserted successfully.")
+    except sqlite3.Error as e:
+        print(f"SQLite error: {e}")
+
+
+
 
 #MEMBER MANAGEMENT FUNCTIONS
-def add_member(conn, username, hashed_password, full_name, email, phone, position, account_balance = 0):
+# Function to add a new member
+def add_member(conn, username, hashed_password, full_name, email, phone, position, account_balance=0):
     if conn is not None:
         try:
+            # Check if the email already exists
+            if get_member_by_email(conn, email) is not None:
+                print("Error: Email already exists.")
+                return None
+            
             cursor = conn.cursor()
             cursor.execute('''INSERT INTO Members (username, hashed_password, full_name, email, phone, position, account_balance)
                               VALUES (?,?,?,?,?,?,?)''', (username, hashed_password, full_name, email, phone, position, account_balance))
