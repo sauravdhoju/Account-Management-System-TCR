@@ -1,6 +1,6 @@
 import streamlit as st
 import re  # Import the regular expression module
-from database import create_connection, create_tables, insert_user, authenticate_user
+from database import create_connection, create_tables, insert_user, delete_user, authenticate_user
 from main import display_dashboard
 
 def main():
@@ -30,6 +30,7 @@ def main():
                 if authenticate_user(conn, username, password):
                     session_state.authenticated = True
                     st.success("Login successful!")
+                    st.rerun()
                 else:
                     st.error("Invalid username or password")
 
@@ -38,9 +39,11 @@ def main():
             new_username = st.text_input("New Username")
             new_password = st.text_input("New Password", type="password")
             confirm_password = st.text_input("Confirm Password", type="password")
+            full_name = st.text_input("Full Name")
             email = st.text_input("Email")
             phone_number = st.text_input("Phone Number")
-            address = st.text_input("Address")
+            position = st.selectbox('Position', ['President', 'Vice President'])
+
             
             if st.button("Register"):
                 # Check if the username is already taken
@@ -60,7 +63,7 @@ def main():
 
                     # Check if passwords match
                     if new_password == confirm_password:
-                        insert_user(conn, new_username, new_password, email, phone_number, address)
+                        insert_user(conn, new_username, new_password, full_name, email, phone_number, position, account_balance = 0)
                         st.success("Registration successful!")
                         tabs[0].visible = True
                         tabs[1].visible = False
@@ -76,13 +79,13 @@ def is_valid_email(email):
 def is_valid_phone_number(phone_number):
     """Check if the phone number is valid."""
     # Regular expression pattern for validating phone number
-    pattern = r"^\+977-[0-9]{10}$"
+    pattern = r"^\+977[0-9]{10}$"
     return re.match(pattern, phone_number) is not None
 
 def is_username_taken(conn, username):
     """Check if the username is already taken."""
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    cursor.execute("""SELECT * FROM Members WHERE username = ?""", (username,))
     return cursor.fetchone() is not None
 
 if __name__ == "__main__":

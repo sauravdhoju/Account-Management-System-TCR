@@ -1,16 +1,3 @@
-import sqlite3
-import streamlit as st
-import pandas as pd
-
-# Function to create a SQLite connection
-def create_connection():
-    try:
-        conn = sqlite3.connect('accounting.db')
-        return conn
-    except sqlite3.Error as e:
-        print(f"SQLite error: {e}")
-    return None
-
 # Function to create tables if they don't exist
 def create_tables(conn):
     if conn is not None:
@@ -18,110 +5,97 @@ def create_tables(conn):
             cursor = conn.cursor()
             cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                                 id INTEGER PRIMARY KEY,
-                                username TEXT NOT NULL,
+                                username TEXT NOT NULL UNIQUE,
                                 password TEXT NOT NULL,
                                 email TEXT NOT NULL,
                                 phone_number TEXT NOT NULL,
-                                address TEXT NOT NULL
+                                address TEXT NOT NULL,
+                                user_type TEXT NOT NULL,
+                                image BLOB
                             )''')
-            # Create table for monthly transactions
-            cursor.execute('''CREATE TABLE IF NOT EXISTS monthly_transactions (
+            # Create table for executive members
+            cursor.execute('''CREATE TABLE IF NOT EXISTS executive_members (
                                 id INTEGER PRIMARY KEY,
-                                date TEXT NOT NULL,
-                                description TEXT NOT NULL,
-                                debit REAL NOT NULL,
-                                credit REAL NOT NULL,
-                                balance REAL NOT NULL
+                                username TEXT NOT NULL UNIQUE,
+                                name TEXT NOT NULL,
+                                position TEXT NOT NULL,
+                                email TEXT NOT NULL,
+                                phone_number TEXT NOT NULL,
+                                amount_spent REAL NOT NULL,
+                                image BLOB
+                            )''')
+            # Create table for transactions
+            cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
+                                id INTEGER PRIMARY KEY,
+                                username TEXT NOT NULL,
+                                amount REAL NOT NULL,
+                                FOREIGN KEY (username) REFERENCES executive_members(username)
                             )''')
             conn.commit()
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
 
-# Function to insert a new monthly transaction into the database
-def insert_monthly_transaction(conn, date, description, debit, credit, balance):
+# Function to insert a new executive member into the database
+def insert_executive_member(conn, username, name, position, email, phone_number, amount_spent, image):
     if conn is not None:
         try:
             cursor = conn.cursor()
-            cursor.execute('''INSERT INTO monthly_transactions (date, description, debit, credit, balance) VALUES (?, ?, ?, ?, ?)''', (date, description, debit, credit, balance))
+            # Check if the executive member with the same username already exists
+            cursor.execute('''SELECT * FROM executive_members WHERE username = ?''', (username,))
+            existing_member = cursor.fetchone()
+            if existing_member:
+                print("Executive member with the same username already exists.")
+                return False
+            else:
+                # Insert the new executive member
+                cursor.execute('''INSERT INTO executive_members (username, name, position, email, phone_number, amount_spent, image) VALUES (?, ?, ?, ?, ?, ?, ?)''', (username, name, position, email, phone_number, amount_spent, image))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+            return False
+
+# Function to manage accounting transactions
+def manage_transaction(conn, username, amount):
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            # Insert the transaction
+            cursor.execute('''INSERT INTO transactions (username, amount) VALUES (?, ?)''', (username, amount))
+            # Update the amount spent for the executive member
+            cursor.execute('''UPDATE executive_members SET amount_spent = amount_spent + ? WHERE username = ?''', (amount, username))
             conn.commit()
             return True
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
             return False
 
-# Function to calculate and update balance for all transactions
-def update_balance(conn):
-    if conn is not None:
-        try:
-            cursor = conn.cursor()
-            cursor.execute('''SELECT id, debit, credit FROM monthly_transactions ORDER BY id ASC''')
-            rows = cursor.fetchall()
-            balance = 0
-            for row in rows:
-                transaction_id, debit, credit = row
-                balance = balance - debit + credit
-                cursor.execute('''UPDATE monthly_transactions SET balance = ? WHERE id = ?''', (balance, transaction_id))
-            conn.commit()
-        except sqlite3.Error as e:
-            print(f"SQLite error: {e}")
-
-# Function to retrieve all monthly transactions from the database
-def get_monthly_transactions(conn):
-    if conn is not None:
-        try:
-            cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM monthly_transactions''')
-            rows = cursor.fetchall()
-            return rows
-        except sqlite3.Error as e:
-            print(f"SQLite error: {e}")
-    return None
-
-# Main function
+# Streamlit interface
 def main():
-    conn = create_connection()
+    conn = create_connection('accounting.db')
     if conn:
         create_tables(conn)
+        st.title("Executive Members Management")
+        
+        # Sidebar options
+        st.sidebar.title("Menu")
+        option = st.sidebar.selectbox("Select Option", ["Add Executive Member", "Manage Transactions", "View Executive Members"])
+        
+        if option == "Add Executive Member":
+            # Add executive member functionality
 
-        # Streamlit interface
-        st.title("Monthly Transactions")
-
-        # Initialize debit variable
-        debit = 0
-        balance = 0
-        # Form for adding a new transaction
-        st.subheader("Add New Transaction")
-        date = st.date_input("Date")
-        description = st.text_input("Description")
-        type = st.selectbox("Transaction Type", options = ["Debit", "Credit"])
-        if type == 'Debit':
-            debit = st.number_input("Debit", min_value=0.0, step=0.01)
-        elif type == 'Credit':
-            credit = st.number_input("Credit", min_value=0.0, step=0.01)
-            
-        if st.button("Add Transaction"):
-            if type == 'Debit':
-                if insert_monthly_transaction(conn, date, description, debit, 0, balance):
-                    st.success("Transaction added successfully!")
-                    update_balance(conn)
+        elif option == "Manage Transactions":
+            st.subheader("Manage Transactions")
+            transaction_username = st.selectbox("Select Executive Member", get_executive_member_usernames(conn))
+            transaction_amount = st.number_input("Transaction Amount", min_value=0.0, step=0.01)
+            if st.button("Submit Transaction"):
+                if manage_transaction(conn, transaction_username, transaction_amount):
+                    st.success("Transaction successful!")
                 else:
-                    st.error("Failed to add transaction.")
-            elif type == 'Credit':
-                if insert_monthly_transaction(conn, date, description, 0, credit, balance):
-                    st.success("Transaction added successfully!")
-                    update_balance(conn)
-                else:
-                    st.error("Failed to add transaction.")
-
-        # Displaying existing transactions
-        st.subheader("Existing Transactions")
-        transactions = get_monthly_transactions(conn)
-        if transactions:
-            df = pd.DataFrame(transactions, columns=["ID", "Date", "Description", "Debit", "Credit", "Balance"])
-            st.dataframe(df)
-        else:
-            st.info("No transactions found.")
-
+                    st.error("Failed to process transaction.")
+        
+        elif option == "View Executive Members":
+            # View executive members functionality
 
 if __name__ == "__main__":
     main()
