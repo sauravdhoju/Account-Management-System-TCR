@@ -24,39 +24,53 @@ def add_executive_members_ui(conn):
         hashed_password = pbkdf2_sha256.hash(exec_password)
         add_executive_member(conn, exec_name, exec_position, exec_email, exec_phone, exec_username, hashed_password, exec_balance, exec_joined_date, exec_performance_metrics, exec_active_status, access_level)
 
+
 def display_executive_members_ui(conn):
-    st.subheader("Executive Members")
     search_query = st.text_input("Search by name or email")
     if st.button("Search"):
         search_results = search_executive_members(conn, search_query)
         if search_results:
             st.write("Search Results:")
+            search_data = []
             for result in search_results:
-                display_member_info(result)
+                # Handle empty phone numbers
+                phone = result[5] if result[5] else "N/A"
+                search_data.append({
+                    "Full Name": result[3],
+                    "Position": result[6],
+                    "Email": result[4],
+                    "Phone": phone,  # Use "N/A" for empty phone numbers
+                    "Username": result[1],
+                    "Account Balance": result[7],
+                    "Joined Date": result[8],
+                    "Performance Metrics": result[9],
+                    "Active Status": "Active" if result[10] else "Inactive",
+                    "Access Level": result[11]
+                })
+            st.table(search_data)
         else:
             st.write("No matching executive members found.")
     else:
-        # If search button is not clicked, display all executive members
-        all_executive_members = get_all_executive_members(conn)
-        if all_executive_members:
-            st.write("All Executive Members:")
-            for member in all_executive_members:
-                display_member_info(member)
+        executive_members = get_all_executive_members(conn)
+        if executive_members:
+            executive_members.sort(key=lambda x: x[3])
+            member_data = []
+            for member in executive_members:
+                # Handle empty phone numbers
+                phone = member[5] if member[5] else "N/A"
+                member_info = {
+                    "Full Name": member[3],
+                    "Position": member[6],
+                    "Email": member[4],
+                    "Phone": phone,  # Use "N/A" for empty phone numbers
+                    "Username": member[1],
+                    "Account Balance": member[7],
+                    "Joined Date": member[8],
+                    "Performance Metrics": member[9],
+                    "Active Status": "Active" if member[10] else "Inactive",
+                    "Access Level": member[11]
+                }
+                member_data.append(member_info)
+            st.table(member_data)
         else:
             st.write("No executive members found.")
-
-def display_member_info(member):
-    st.write("Full Name:", member[3])
-    st.write("Position:", member[6])
-    st.write("Email:", member[4])
-    st.write("Phone:", member[5])
-    st.write("Username:", member[1])
-    st.write("Account Balance:", member[7])
-    st.write("Joined Date:", member[8])
-    st.write("Performance Metrics:", member[9])
-    st.write("Active Status:", "Active" if member[10] else "Inactive")
-    st.write("Access Level:", member[11])
-    st.write("---")
-
-# display_executive_members(conn)
-# add_executive_members_ui(conn)
