@@ -1,4 +1,5 @@
 import sqlite3
+import streamlit as st
 from passlib.hash import pbkdf2_sha256
 
 # Function to create a SQLite connection
@@ -23,7 +24,11 @@ def create_tables(conn):
                                 email TEXT UNIQUE,
                                 phone INTEGER,
                                 position TEXT NOT NULL,
-                                account_balance REAL DEFAULT 0 CHECK (account_balance >= 0)
+                                account_balance REAL DEFAULT 0 CHECK (account_balance >= 0),
+                                joined_date DATE,
+                                performance_metrics TEXT,
+                                active_status BOOLEAN,
+                                access_level TEXT NOT NULL  -- Add access level field
                             )''')
             
             insert_default_user(conn)
@@ -62,7 +67,6 @@ def create_tables(conn):
             print(f"SQLite error: {e}")
             
 #DEFAULT USER
-# Function to insert the default user if it doesn't exist
 def insert_default_user(conn):
     default_pass_hash = pbkdf2_sha256.hash('admin')
     try:
@@ -70,8 +74,8 @@ def insert_default_user(conn):
         cursor.execute('''SELECT COUNT(*) FROM Members WHERE username = 'admin' AND email = 'admin@example.com' ''')
         count = cursor.fetchone()[0]
         if count == 0:
-            cursor.execute('''INSERT INTO Members (username, hashed_password, full_name, email, phone, position, account_balance)
-                              VALUES ('admin', ?, 'Admin User', 'admin@example.com', 1234567890, 'Administrator', 0)''', (default_pass_hash,))
+            cursor.execute('''INSERT INTO Members (username, hashed_password, full_name, email, phone, position, account_balance, access_level)
+                              VALUES ('admin', ?, 'Admin User', 'admin@example.com', 1234567890, 'Administrator', 0, 'superuser')''', (default_pass_hash,))
             conn.commit()
             print("Default user inserted successfully.")
     except sqlite3.Error as e:
@@ -79,44 +83,89 @@ def insert_default_user(conn):
 
 
 
-
 #MEMBER MANAGEMENT FUNCTIONS
-# Function to add a new member
-def add_member(conn, username, hashed_password, full_name, email, phone, position, account_balance=0):
+def add_executive_member(conn, exec_name, exec_position, exec_email, exec_phone, exec_username, hashed_password, exec_balance, exec_joined_date, exec_performance_metrics, exec_active_status, access_level):
     if conn is not None:
         try:
-            # Check if the email already exists
-            if get_member_by_email(conn, email) is not None:
-                print("Error: Email already exists.")
-                return None
-            
             cursor = conn.cursor()
-            cursor.execute('''INSERT INTO Members (username, hashed_password, full_name, email, phone, position, account_balance)
-                              VALUES (?,?,?,?,?,?,?)''', (username, hashed_password, full_name, email, phone, position, account_balance))
+            
+            # Check if the username or email already exists
+            existing_username = get_member_by_username(conn, exec_username)
+            existing_email = get_member_by_email(conn, exec_email)
+            
+            if existing_username:
+                st.error("Username already occupied.")
+                print("Username already exists. Please choose a different username.")
+                return False
+            
+            if existing_email:
+                st.error("Email already occupied.")                
+                print("Email already exists. Please choose a different email.")
+                return False
+            
+            cursor.execute('''INSERT INTO Members (full_name, position, email, phone, username, hashed_password, account_balance, joined_date, performance_metrics, active_status, access_level)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (exec_name, exec_position, exec_email, exec_phone, exec_username, hashed_password, exec_balance, exec_joined_date, exec_performance_metrics, exec_active_status, access_level))
             conn.commit()
-            return cursor.lastrowid
+            st.success("Executive Member added successfully.")
+            print("Executive member added successfully.")
+            return True
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
-    return None
+            return False
+    else:
+        print("Error: Connection to SQLite database is not established.")
+        return False
+
+
+
 
 def get_member_by_username(conn, username):
     if conn is not None:
         try:
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM Members WHERE username = ?''', (username))
+            cursor.execute('''SELECT * FROM Members WHERE username = ?''', (username,))
             return cursor.fetchone()
+        
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
 
 def get_member_by_email(conn, email):
     if conn is not None:
         try:
+
+            # print("Hey")
             cursor = conn.cursor()
-            cursor.execute('''SELECT * from Members WHERE email = ?''', (email))
+            cursor.execute('''SELECT * from Members WHERE email = ?''', (email,))
             return cursor.fetchone()
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
     return None
+
+def search_executive_members(conn, search_query):
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            # Search for executive members by name or email
+            cursor.execute('''SELECT * FROM Members WHERE full_name LIKE ? OR email LIKE ?''', ('%' + search_query + '%', '%' + search_query + '%'))
+            rows = cursor.fetchall()
+            return rows
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+    else:
+        print("Error: Connection to SQLite database is not established.")
+        return None
+
+def get_all_executive_members(conn):
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''SELECT * FROM Members WHERE position IN (?, ?, ?, ?)''', ('President', 'Vice President', 'Secretary', 'IT Coordinator'))
+            return cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+    else:
+        print("Error: Connection to SQLite database is not established.")
+        return None
         
 def update_member_details(conn, member_id, new_details):
     if conn is not None:
@@ -339,15 +388,16 @@ def authenticate_user(conn, username, password):
             cursor.execute('''SELECT * FROM Members WHERE username = ?''', (username,))
             user = cursor.fetchone()
             if user:
-                stored_password = user[2]   #password stored in index 2
+                stored_password = user[2]   # Password stored in index 2
                 if pbkdf2_sha256.verify(password, stored_password):
+                    access_level = user[-1]  # Access level stored in the last column
                     print("Authentication successful.")
-                    return True
+                    return access_level  # Return access level
             print("Authentication Failed.")
-            return False
+            return None
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
-    return False
+    return None
 
 
 

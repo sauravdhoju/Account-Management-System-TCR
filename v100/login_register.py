@@ -24,7 +24,7 @@ def main():
         # Login tab content
         # with tabs[0]:
         st.subheader("Login")
-        username = st.text_input("Username")
+        username = st.text_input("Username1")
         password = st.text_input("Password", type="password")
         login_button = st.button("Login")
         if login_button:

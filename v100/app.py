@@ -2,9 +2,9 @@ import streamlit as st
 from login_register import main as login_register_main
 # from main import main as main_page_main
 
-st.set_page_config(page_title = "TROJAN", page_icon = ":NOTE:", layout = "centered")
+# st.set_page_config(page_title = "TROJAN", page_icon = ":NOTE:", layout = "centered")
 
-def main():
+def display_app_interface():
     st.markdown(
         """
         <div style="text-align:center">
@@ -23,4 +23,4 @@ def main():
         st.image(image, use_column_width=True)
 
 if __name__ == "__main__":
-    main()
+    display_app_interface()

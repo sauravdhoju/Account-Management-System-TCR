@@ -18,8 +18,6 @@ def monthly_transaction(conn):
             """,
             unsafe_allow_html=True
         )   
-
-        # Initialize debit variable
         debit = 0
         balance = 0
         # Form for adding a new transaction

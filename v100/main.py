@@ -3,7 +3,7 @@ import pandas as pd
 from streamlit_option_menu import option_menu
 import database
 from financial_overview import monthly_transaction 
-from executive_member import add_excutive_members
+from executive_member import add_executive_members_ui, display_executive_members_ui
 
 # debit = 0
 # credit = 0
@@ -18,7 +18,7 @@ def display_dashboard():
         with st.sidebar:
             selected_option = option_menu(
                 menu_title=None,  # Title of the menu
-                options=["Financial Management", "Executive Members", "Club Members", "Logout"],  # Options in the menu
+                options=["Financial Management", "Executive Members", "Logout"],  # Options in the menu
                 icons=["bank", "people-fill", "power"],  # Icons corresponding to each option
                 menu_icon="th-large",  # Icon for the menu itself
                 default_index=0,  # Index of the default selected option
@@ -66,11 +66,12 @@ def display_dashboard():
             )   
             selected_suboption = st.selectbox("Select Suboption", ["Add Executive Members", "View Executive Members", "View Executive Member Profile", "Edit Executive Member Profile", "Remove Executive Member"])
             if selected_suboption == "Add Executive Members":
-                st.subheader("Add Executive Members")
-                add_excutive_members()
+                add_executive_members_ui(conn)
                 #add executive members
             elif selected_suboption == "View Executive Members":
                 st.subheader("View Executive Members")
+                display_executive_members_ui(conn)
+
                 # Insert content for member payments here
             elif selected_suboption == "View Executive Profile":
                 st.subheader("View Executive Profile")
