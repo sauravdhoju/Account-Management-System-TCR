@@ -116,9 +116,6 @@ def add_executive_member(conn, exec_name, exec_position, exec_email, exec_phone,
         print("Error: Connection to SQLite database is not established.")
         return False
 
-
-
-
 def get_member_by_username(conn, username):
     if conn is not None:
         try:
@@ -166,7 +163,7 @@ def get_all_executive_members(conn):
     else:
         print("Error: Connection to SQLite database is not established.")
         return None
-        
+
 def update_member_details(conn, member_id, new_details):
     if conn is not None:
         try:
@@ -180,11 +177,11 @@ def update_member_details(conn, member_id, new_details):
             print(f"SQLite error: {e}")
     return False
 
-def delete_member(conn, member_id):
+def delete_member(conn, del_username):
     if conn is not None:
         try:
             cursor = conn.cursor()
-            cursor.execute('''DELETE FROM Members WHERE member_id = ?''', (member_id,))
+            cursor.execute('''DELETE FROM Members WHERE username = ?''', (del_username,))
             conn.commit()
             return True
         except sqlite3.Error as e:

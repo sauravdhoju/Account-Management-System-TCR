@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 from streamlit_option_menu import option_menu
 import database
-from financial_overview import monthly_transaction 
-from executive_member import add_executive_members_ui, display_executive_members_ui
+from executive_member import add_executive_members_ui, display_executive_members_ui, delete_executive_members_ui
 
 # debit = 0
 # credit = 0
@@ -68,19 +67,20 @@ def display_dashboard():
             if selected_suboption == "Add Executive Members":
                 add_executive_members_ui(conn)
                 #add executive members
-            elif selected_suboption == "View Executive Members":
+            elif (selected_suboption == "View Executive Members"):
                 st.subheader("View Executive Members")
                 display_executive_members_ui(conn)
 
-                # Insert content for member payments here
-            elif selected_suboption == "View Executive Profile":
+            elif selected_suboption == "View Executive Member Profile":
                 st.subheader("View Executive Profile")
-                # Insert content for contributions here
-            elif selected_suboption == "Edit Members Profile":
+
+            elif selected_suboption == "Edit Executive Member Profile":
                 st.subheader("Edit Members Profile")
-            elif selected_suboption == "Remove Executive Members":
-                st.subheader("Remove Executive Members")
-                # Insert content for revenue here
+
+            elif (selected_suboption == "Remove Executive Member"):
+                st.subheader("Remove Executive Member")
+                delete_executive_members_ui(conn)
+
 #Club Members       
         elif selected_option == "Club Members":
             st.markdown(

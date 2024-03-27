@@ -2,7 +2,7 @@
 
 import streamlit as st
 from passlib.hash import pbkdf2_sha256
-from database import create_connection, add_executive_member, search_executive_members, get_all_executive_members
+from database import create_connection, add_executive_member, search_executive_members, get_all_executive_members, delete_member
 
 conn = create_connection()
 
@@ -74,3 +74,18 @@ def display_executive_members_ui(conn):
             st.table(member_data)
         else:
             st.write("No executive members found.")
+
+def delete_executive_members_ui(conn):
+    del_username = st.text_input("Enter Username")
+    if st.button("Delete"):
+        if del_username.strip() == "":
+            print("Invalid Username")
+            st.error("Please enter a valid Member ID.")
+        else:
+            success = delete_member(conn, del_username)
+            if success:
+                print("Delete member")
+                st.success("Member deleted successfully.")
+            else:
+                print("Faile to delete member")
+                st.error("Failed to delete member.")
