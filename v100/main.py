@@ -16,7 +16,7 @@ def display_dashboard():
         st.sidebar.image("background.png")
         with st.sidebar:
             selected_option = option_menu(
-                menu_title=None,  # Title of the menu
+                menu_title="None",  # Title of the menu
                 options=["Financial Management", "Executive Members", "Logout"],  # Options in the menu
                 icons=["bank", "people-fill", "power"],  # Icons corresponding to each option
                 menu_icon="th-large",  # Icon for the menu itself
